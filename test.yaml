@@ -1,0 +1,228 @@
+---
+  defaults: 
+    parameters: 
+      Weight: "Gerard"
+      KeyName: "builds"
+      HostedZoneName: "dev.aws.ansarada.com."
+      DomainAdminUsername: "alex.dess2"
+      DomainAdminPassword: "Kop2Sop@"
+      VpcId: 
+        Stack: "inf-vpc-core"
+        Output: "VpcId"
+      VpcCidrBlock: 
+        Stack: "inf-vpc-core"
+        Output: "VpcCidrBlock"
+      sgRDPClient: 
+        Stack: "inf-vpc-security-shared"
+        Output: "sgRDPClient"
+      sgRdpServer: 
+        Stack: "inf-vpc-security-shared"
+        Output: "sgRdpServer"
+      sgInternetAccess: 
+        Stack: "inf-vpc-security-shared"
+        Output: "sgInternetAccessPrivate"
+      sgDomainMember: 
+        Stack: "inf-core-ad-shared"
+        Output: "sgDomainMember"
+      sgMsSqlServer: 
+        Stack: "inf-mssql-shared"
+        Output: "sgMsSqlServer"
+  stacks: 
+    - 
+      name: "inf-vpc-core"
+      template_name: "00-vpc-core"
+      policy_name: "AllowModifyOnly"
+    - 
+      name: "inf-vpc-nat-shared"
+      template_name: "01-vpc-nat-shared"
+      policy_name: "AllowModifyOnly"
+      capabilities: "CAPABILITY_IAM"
+    - 
+      name: "inf-vpc-security-shared"
+      template_name: "02-vpc-security-shared"
+      policy_name: "AllowModifyOnly"
+      capabilities: "CAPABILITY_IAM"
+      parameters: 
+        VpcId: 
+          Stack: "inf-vpc-core"
+          Output: "VpcId"
+        VpcCidrBlock: 
+          Stack: "inf-vpc-core"
+          Output: "VpcCidrBlock"
+        sgNat: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "sgNat"
+    - 
+      name: "inf-vpc-nat-zone-a"
+      template_name: "03-vpc-nat-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        sgNat: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "sgNat"
+        AvailabilityZone: "ZoneA"
+        MyPrivateRouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneA"
+        OtherPrivateRouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneB"
+        PublicSubnet: 
+          Stack: "inf-vpc-core"
+          Output: "PublicSubnetZoneA"
+        snsNatMonitor: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "snsNatMonitor"
+        profileNatMonitor: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "profileNatMonitor"
+        RouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneA"
+    - 
+      name: "inf-vpc-nat-zone-b"
+      template_name: "03-vpc-nat-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        sgNat: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "sgNat"
+        AvailabilityZone: "ZoneB"
+        MyPrivateRouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneB"
+        OtherPrivateRouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneA"
+        PublicSubnet: 
+          Stack: "inf-vpc-core"
+          Output: "PublicSubnetZoneB"
+        snsNatMonitor: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "snsNatMonitor"
+        profileNatMonitor: 
+          Stack: "inf-vpc-nat-shared"
+          Output: "profileNatMonitor"
+        RouteTable: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateRouteTableZoneB"
+    - 
+      name: "vpc-rdgw-shared"
+      template_name: "08-vpc-rdgw-shared"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        VpcId: 
+          Stack: "inf-vpc-core"
+          Output: "VpcId"
+    - 
+      name: "inf-core-ad-shared"
+      template_name: "10-core-dc-shared"
+      policy_name: "AllowModifyOnly"
+      capabilities: "CAPABILITY_IAM"
+      parameters: 
+        PrivateSubnetZoneA: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateSubnetZoneA"
+        PrivateSubnetZoneB: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateSubnetZoneB"
+    - 
+      name: "inf-mssql-shared"
+      template_name: "30-core-mssql-shared"
+      policy_name: "AllowModifyOnly"
+      capabilities: "CAPABILITY_IAM"
+      parameters: 
+        sgRDPServer: 
+          Stack: "inf-vpc-security-shared"
+          Output: "sgRDPServer"
+    - 
+      name: "vpc-rdgw-zone"
+      template_name: "09-vpc-rdgw-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        sgPublicRDPServer: 
+          Stack: "inf-vpc-security-shared"
+          Output: "sgPublicRDPServer"
+        Subnet: 
+          Stack: "inf-vpc-core"
+          Output: "PublicSubnetZoneA"
+        sgRdgw: 
+          Stack: "vpc-rdgw-shared"
+          Output: "sgRdgw"
+        AvailabilityZone: "ZoneA"
+        PrivateIpAddress: "10.10.1.10"
+    - 
+      name: "inf-core-ad-dc-zone-a"
+      template_name: "11-core-dc-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        AvailabilityZone: "ZoneA"
+        AmiId: "ami-459efa7f"
+        EniDc: 
+          Stack: "inf-core-ad-shared"
+          Output: "EniDc01"
+        IamInstanceProfile: 
+          Stack: "inf-core-ad-shared"
+          Output: "ProfileDomainController"
+    - 
+      name: "inf-core-ad-dc-zone-b"
+      template_name: "11-core-dc-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        AvailabilityZone: "ZoneB"
+        AmiId: "ami-b99efa83"
+        EniDc: 
+          Stack: "inf-core-ad-shared"
+          Output: "EniDc02"
+        IamInstanceProfile: 
+          Stack: "inf-core-ad-shared"
+          Output: "ProfileDomainController"
+    - 
+      name: "inf-mssql-zone-a"
+      template_name: "31-core-mssql-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        AmiId: "ami-0fa83235"
+        SnapIdD: "snap-6c2ac05b"
+        AvailabilityZone: "ZoneA"
+        ServerName: "Mssql01"
+        IamInstanceProfile: 
+          Stack: "inf-mssql-shared"
+          Output: "ProfileMssql"
+        PrivateSubnetZone: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateSubnetZoneA"
+        sgMsSqlServer: 
+          Stack: "inf-mssql-shared"
+          Output: "sgMsSqlServer"
+        sgDomainMember: 
+          Stack: "inf-core-ad-shared"
+          Output: "sgDomainMember"
+        PrivateIpAddress: "10.10.65.10"
+    - 
+      name: "inf-mssql-zone-b"
+      template_name: "31-core-mssql-zone"
+      policy_name: "AllowModifyOnly"
+      parameters: 
+        AmiId: "ami-0fa83235"
+        SnapIdD: "snap-6c2ac05b"
+        AvailabilityZone: "ZoneB"
+        ServerName: "Mssql02"
+        IamInstanceProfile: 
+          Stack: "inf-mssql-shared"
+          Output: "ProfileMssql"
+        PrivateSubnetZone: 
+          Stack: "inf-vpc-core"
+          Output: "PrivateSubnetZoneB"
+        sgMsSqlServer: 
+          Stack: "inf-mssql-shared"
+          Output: "sgMsSqlServer"
+        sgDomainMember: 
+          Stack: "inf-core-ad-shared"
+          Output: "sgDomainMember"
+        PrivateIpAddress: "10.10.129.10"
+    - 
+      name: "vdr-shared"
+      template_name: "50-vdr-shared"
+      policy_name: "AllowModifyOnly"
+      capabilities: "CAPABILITY_IAM"
