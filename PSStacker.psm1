@@ -1,14 +1,16 @@
 Write-Verbose "Importing AWSPowerShell"
 Import-Module AWSPowerShell
 
-foreach ($Assembly in $(Get-ChildItem $(Join-Path $PSScriptRoot "Libs"))) {
-	Write-Host "Loading assembly $(Assembly.Name)"
-	Import-Module $Script.FullName
+foreach ($Assembly in $(Get-ChildItem -Recurse $(Join-Path $PSScriptRoot "Libs") -Filter '*.dll')) {
+	Write-Host "Loading assembly $($Assembly.Name)"
+	Import-Module $Assembly.FullName
 }
 
 foreach ($Script in $(Get-ChildItem $(Join-Path $PSScriptRoot "Functions"))) {
-	Write-Host "Dot sourcing $($Script.Name)"
-	. $Script.FullName
+	if ($Script.Name -NotLike '*.Tests.ps1') {
+		Write-Host "Dot sourcing $($Script.Name)"
+		. $Script.FullName
+	}
 }
 
 <#
